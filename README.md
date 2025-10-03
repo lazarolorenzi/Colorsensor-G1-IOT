@@ -12,7 +12,8 @@ A motivação é explorar a integração de múltiplos sensores, comunicação v
 - Reproduzir a cor detectada em um **LED RGB**, ajustando brilho conforme a luminosidade.  
 - Publicar os dados em **tópicos MQTT distintos**, com suporte a comandos de controle.  
 - Criar uma **dashboard local (HTTP)** para visualização em tempo real e envio de comandos.  
-- Garantir **fluidez** no LED (segura cada cor por pelo menos 1 segundo antes da troca).  
+- Garantir **fluidez** no LED (segura cada cor por pelo menos 1 segundo antes da troca).
+- Salvar os dados do MQTT em um Banco de Dados (SQLite).
 - Documentar o fluxo completo do projeto, desde os sensores até a dashboard.  
 
 ---
@@ -74,18 +75,19 @@ O ESP32 publica mensagens em tópicos distintos no broker **test.mosquitto.org**
 
 ---
 
-## ⚙️ Fluxo do Sistema
+- ## ⚙️ Fluxo do Sistema
 
 ```mermaid
 flowchart TD
     A[Sensores] --> B[ESP32]
     B --> C[Processamento RGB + Lux]
-    C --> D[LED RGB (atuador)]
+    C --> D[LED RGB]
+    E --> D[LED RGB]
     C --> E[MQTT Broker]
-    C --> F[Dashboard HTTP]
+    E --> F[Dashboard HTTP]
     E --> G[Clientes Externos]
+    E --> J[Banco De Dados]
 ```
-
 ---
 
 ## 📊 Dashboard
@@ -97,11 +99,11 @@ Funcionalidades:
 - Permite **enviar comandos manuais** para o LED.  
 - Mostra log com horário das últimas atualizações.  
 
-📸 **Capturas de Tela (instruções):**
-- Coloque prints no diretório `/docs` e linke aqui:
-  - Dashboard em execução → `![Dashboard](docs/dashboard.png)`  
-  - LED exibindo cor → `![LED RGB](docs/led.png)`  
-  - Assinatura MQTT → `![MQTT Logs](docs/mqtt.png)`  
+📸 **Capturas de Tela:**  
+ - Assinatura MQTT →
+  <img width="943" height="258" alt="image" src="https://github.com/user-attachments/assets/9f4de3f2-8ab0-4c3e-9912-a46d78e00434" />
+- Dashboard em execução →   
+  <img width="1267" height="672" alt="image" src="https://github.com/user-attachments/assets/fe3b1125-77d3-44f9-ae07-5bc8b02fec89" />
 
 ---
 
@@ -112,13 +114,11 @@ Funcionalidades:
 - Garantir que o LED não piscasse rapidamente (solução: segurar cor por 1 segundo).  
 - Conciliar Wi-Fi, MQTT e WebServer rodando simultaneamente no ESP32.  
 
-### Melhorias Futuras
-- Armazenar dados em um banco externo (via Flask + SQLite/Postgres).  
+### Melhorias Futuras  
 - Criar gráficos históricos (Grafana/Node-RED).  
 - Adicionar novos sensores (ex.: DHT22 para temperatura/umidade).  
-- Suporte a MQTT com TLS para maior segurança.  
+- Suporte a MQTT com TLS para maior segurança.
 
----
 
-✍️ Desenvolvido por **Lázaro Vissoto Lorenzi**  
-Projeto acadêmico — Faculdade Antonio Meneghetti
+✍️ Desenvolvido por **Lázaro Vissoto Lorenzi, Nícolas Marin Corneli**  
+Projeto acadêmico — Faculdade
