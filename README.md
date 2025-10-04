@@ -87,6 +87,14 @@ flowchart TD
     E --> F[Dashboard HTTP]
     E --> J[Banco De Dados]
 ```
+- ## ⚙️ Fluxo do HardWare
+  
+```mermaid
+flowchart TD
+    A[TCS3200] --> B[ESP32]
+    C[BH1750] --> B
+    B --> D[LED]
+```
 ---
 
 ## 📊 Dashboard
