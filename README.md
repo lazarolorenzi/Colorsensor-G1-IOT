@@ -81,11 +81,10 @@ O ESP32 publica mensagens em tópicos distintos no broker **test.mosquitto.org**
 flowchart TD
     A[Sensores] --> B[ESP32]
     B --> C[Processamento RGB + Lux]
-    C --> D[LED RGB]
-    E --> D[LED RGB]
+    B --> D[LED RGB]
+    F --> D[LED RGB]
     C --> E[MQTT Broker]
     E --> F[Dashboard HTTP]
-    E --> G[Clientes Externos]
     E --> J[Banco De Dados]
 ```
 ---
