@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ambient Match — Dashboard</title>
+<style>
+:root{--bg:#0f172a;--txt:#e5e7eb;--mut:#9ca3af;--panel:#0b1324;--border:#1f2937}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+body{margin:0;background:#0b1021;color:var(--txt);display:flex;justify-content:center}
+.wrap{max-width:980px;width:100%;padding:22px 14px}
+h1{font-size:22px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:linear-gradient(180deg,#111827 0,#0b1324 100%);border:1px solid var(--border);border-radius:16px;padding:14px}
+h2{font-size:15px;margin:0 0 10px;color:#cbd5e1}
+.val{font-weight:700;font-size:28px}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#0b1931;border:1px solid #1e293b;color:#a5b4fc}
+.small{font-size:12px;color:#9ca3af}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.swatch{width:48px;height:48px;border-radius:12px;border:1px solid var(--border)}
+.input{background:#0b1a34;border:1px solid #1f2a3c;color:#e5e7eb;border-radius:10px;padding:8px 10px}
+button{background:#0ea5e9;border:none;color:white;padding:8px 14px;border-radius:10px;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+@media (max-width:720px){.grid{grid-template-columns:1fr}}
+.mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+.ok{background:#0a2d1e !important;color:#86efac !important}
+.err{background:#2d0a0a !important;color:#fecaca !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ambient Match — ESP32 (via API Flask)</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Status</h2>
+      <div class="row">
+        <span class="badge" id="api">API: —</span>
+        <span class="badge" id="last">Última atualização: —</span>
+      </div>
+      <div class="small">Fonte de dados: <code>/api/latest</code></div>
+    </div>
+
+    <div class="card">
+      <h2>Lux (BH1750)</h2>
+      <div class="val" id="lux">—</div>
+      <div class="small">Histórico: <a href="/api/lux" target="_blank">/api/lux</a></div>
+    </div>
+
+    <div class="card">
+      <h2>Cor detectada (TCS3200)</h2>
+      <div class="row">
+        <div class="swatch" id="sw"></div>
+        <div>
+          <div class="val" id="cname">—</div>
+          <div class="small" id="cmeta">RGB — | HSV —</div>
+        </div>
+      </div>
+      <div class="small">Histórico: <a href="/api/color" target="_blank">/api/color</a></div>
+    </div>
+
+    <div class="card">
+      <h2>LED (atuador)</h2>
+      <div class="row">
+        <input class="input" id="r" type="number" min="0" max="255" value="0" style="width:80px">
+        <input class="input" id="g" type="number" min="0" max="255" value="0" style="width:80px">
+        <input class="input" id="b" type="number" min="0" max="255" value="0" style="width:80px">
+        <button id="btnSend">Enviar</button>
+      </div>
+      <div class="small">Envia via <code>POST /api/cmd</code> (Flask &rarr; MQTT)</div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h2>Log</h2>
+      <div id="log" class="small mono"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function log(s){
+  const el=document.getElementById('log');
+  const p=document.createElement('div');
+  p.textContent=new Date().toLocaleTimeString()+" - "+s;
+  el.prepend(p);
+}
+function badge(elId, text, ok){
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.classList.remove('ok','err');
+  el.classList.add(ok ? 'ok' : 'err');
+}
+
+async function pullLatest(){
+  try{
+    const r = await fetch('/api/latest', {cache:'no-store'});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+
+    badge('api','API: ok', true);
+    document.getElementById('last').textContent = 'Última atualização: ' + new Date().toLocaleTimeString();
+
+    // Lux
+    if(d.lux && typeof d.lux.lux !== 'undefined'){
+      document.getElementById('lux').textContent = Number(d.lux.lux).toFixed(2);
+    } else {
+      document.getElementById('lux').textContent = '—';
+    }
+
+    // Color
+    if(d.color && Array.isArray(d.color.rgb)){
+      const [r,g,b]=d.color.rgb.map(v=>+v||0);
+      const hex="#"+[r,g,b].map(x=>('0'+x.toString(16)).slice(-2)).join('');
+      document.getElementById('sw').style.background = hex;
+      document.getElementById('cname').textContent = d.color.name || '—';
+      const h=d.color.hsv?.h||0, s=d.color.hsv?.s||0, v=d.color.hsv?.v||0;
+      document.getElementById('cmeta').textContent = `RGB (${r},${g},${b}) | HSV (${h.toFixed?.(0)??0},${s.toFixed?.(2)??0},${v.toFixed?.(2)??0})`;
+    } else {
+      document.getElementById('sw').style.background = '#000';
+      document.getElementById('cname').textContent = '—';
+      document.getElementById('cmeta').textContent = 'RGB — | HSV —';
+    }
+  }catch(e){
+    badge('api','API: erro', false);
+    log('Falha ao buscar /api/latest: ' + e.message);
+  }
+}
+
+document.getElementById('btnSend').onclick = async ()=>{
+  const r=+document.getElementById('r').value||0;
+  const g=+document.getElementById('g').value||0;
+  const b=+document.getElementById('b').value||0;
+  try{
+    const res = await fetch('/api/cmd', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({led:[r,g,b]})
+    });
+    const js = await res.json().catch(()=>({}));
+    log(`POST /api/cmd -> ${res.status} ${JSON.stringify(js)}`);
+  }catch(e){
+    log('Falha /api/cmd: ' + e.message);
+  }
+};
+
+setInterval(pullLatest, 1000);
+pullLatest();
+</script>
+</body>
+</html>
